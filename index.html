@@ -1,11 +1,468 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-    <meta charset="UTF-8">
-    <title>Rogério Sousa</title>
+    <meta charset="UTF-8" />
+    <title>Fluxograma Interativo do Currículo</title>
+    <style>
+      body {
+        margin: 20px;
+        font-family: Arial, sans-serif;
+      }
+      h1 {
+        text-align: center;
+      }
+
+      /* Grid de 6 colunas (5 períodos + coluna de optativas) */
+      #diagram {
+        display: grid;
+        grid-template-columns: repeat(6, auto);
+        column-gap: 60px;
+        position: relative;
+        padding-top: 40px;
+      }
+
+      /* SVG de linhas fica absoluto dentro de #diagram */
+      #diagram > svg#lines {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* Cada coluna (período ou optativas) empilha seus nós */
+      .module {
+        display: flex;
+        flex-direction: column;
+        row-gap: 20px;
+        align-items: center;
+      }
+
+      /* Nós (disciplinas e bloco Optativas) */
+      .node {
+        width: 180px;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 8px;
+        border: 2px solid #333;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.2s;
+        white-space: normal;
+        font-size: 0.9em;
+        position: relative;
+        z-index: 1;
+      }
+      .node:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      /* Pré-requisitos: amarelo */
+      .node.highlight {
+        background: #ffe066 !important;
+      }
+      /* Dependentes: azul claro */
+      .node.dep-highlight {
+        background: #8ecae6 !important;
+      }
+
+      /* Estilo das linhas */
+      svg#lines line {
+        stroke: #999;
+        stroke-width: 2;
+        marker-end: url(#arrow);
+        transition: stroke 0.2s, stroke-width 0.2s;
+      }
+      /* Linhas de pré-requisito: vermelho */
+      svg#lines line.highlight {
+        stroke: #f44336;
+        stroke-width: 4;
+      }
+      /* Linhas de dependente: azul escuro */
+      svg#lines line.dep-highlight {
+        stroke: #0077b6;
+        stroke-width: 4;
+      }
+    </style>
   </head>
   <body>
-    <h1>Projetoss</h1>
-    <img src="IMAGE1.webp" alt="Paisagem">
+    <h1>Fluxograma do Curso (colunas = períodos + optativas)</h1>
+
+    <div id="diagram">
+      <svg id="lines">
+        <defs>
+          <marker
+            id="arrow"
+            viewBox="0 0 10 10"
+            refX="10"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#999" />
+          </marker>
+        </defs>
+      </svg>
+    </div>
+
+    <script>
+      // cores por coluna
+      const moduleColors = {
+        1: "#AEDFF7",
+        2: "#FFD59E",
+        3: "#C3F7AE",
+        4: "#F7AEC3",
+        5: "#E3AEF7",
+        6: "#FFF4A3", // coluna de optativas
+      };
+
+      // disciplinas + bloco Optativas
+      const courses = [
+        { code: "01", name: "Algoritmo e Programação", module: 1, prereq: [] },
+        { code: "02", name: "Inglês Técnico", module: 1, prereq: [] },
+        { code: "03", name: "Introdução a Computação", module: 1, prereq: [] },
+        { code: "04", name: "Atividades Linguísticas", module: 1, prereq: [] },
+        { code: "05", name: "Matemática Computacional", module: 1, prereq: [] },
+        {
+          code: "06",
+          name: "Metodologia da Pesquisa Científica",
+          module: 1,
+          prereq: [],
+        },
+        { code: "07", name: "Estatística", module: 1, prereq: [] },
+        {
+          code: "08",
+          name: "Introdução a Administração",
+          module: 1,
+          prereq: [],
+        },
+
+        { code: "09", name: "Banco de Dados I", module: 2, prereq: [] },
+        {
+          code: "10",
+          name: "Sistemas Operacionais",
+          module: 2,
+          prereq: ["03"],
+        },
+        {
+          code: "11",
+          name: "Programação Orientada a Objetos",
+          module: 2,
+          prereq: ["01"],
+        },
+        {
+          code: "12",
+          name: "Arquitetura de Computadores",
+          module: 2,
+          prereq: [],
+        },
+        { code: "13", name: "Engenharia de Software I", module: 2, prereq: [] },
+        {
+          code: "14",
+          name: "Estrutura de Dados I",
+          module: 2,
+          prereq: ["01", "03"],
+        },
+        {
+          code: "15",
+          name: "Análise e Projeto de Sistemas",
+          module: 2,
+          prereq: [],
+        },
+        {
+          code: "16",
+          name: "Metodologia e Extensão no Ensino Superior",
+          module: 2,
+          prereq: [],
+        },
+
+        { code: "17", name: "Banco de Dados II", module: 3, prereq: ["09"] },
+        {
+          code: "18",
+          name: "Estrutura de Dados II",
+          module: 3,
+          prereq: ["14"],
+        },
+        {
+          code: "19",
+          name: "Programação para Internet I",
+          module: 3,
+          prereq: ["09"],
+        },
+        {
+          code: "20",
+          name: "Engenharia de Software II",
+          module: 3,
+          prereq: ["13"],
+        },
+        {
+          code: "21",
+          name: "Planejamento Extensionista",
+          module: 3,
+          prereq: ["16"],
+        },
+        {
+          code: "22",
+          name: "Redes de Computadores",
+          module: 3,
+          prereq: ["03"],
+        },
+        {
+          code: "23",
+          name: "Inteligência Artificial",
+          module: 3,
+          prereq: ["07"],
+        },
+
+        {
+          code: "24",
+          name: "Programação para Internet II",
+          module: 4,
+          prereq: ["19"],
+        },
+        {
+          code: "25",
+          name: "Engenharia de Software III",
+          module: 4,
+          prereq: ["20"],
+        },
+        {
+          code: "26",
+          name: "Programação para Dispositivos Móveis",
+          module: 4,
+          prereq: ["11"],
+        },
+        {
+          code: "27",
+          name: "Interação Humano-Computador",
+          module: 4,
+          prereq: ["19"],
+        },
+        {
+          code: "28",
+          name: "Extensão Curricular I",
+          module: 4,
+          prereq: ["16"],
+        },
+        {
+          code: "29",
+          name: "Elaboração de Projeto",
+          module: 4,
+          prereq: ["17", "18", "19", "20", "21", "22", "23"],
+        },
+        {
+          code: "30",
+          name: "Tópicos Especiais em Programação",
+          module: 4,
+          prereq: [],
+        },
+
+        {
+          code: "31",
+          name: "Segurança da Informação",
+          module: 5,
+          prereq: ["22"],
+        },
+        {
+          code: "32",
+          name: "Empreendedorismo e Inovação",
+          module: 5,
+          prereq: ["08"],
+        },
+        {
+          code: "33",
+          name: "Tópicos Especiais em Computação",
+          module: 5,
+          prereq: [],
+        },
+        {
+          code: "34",
+          name: "Extensão Curricular II",
+          module: 5,
+          prereq: ["16"],
+        },
+        {
+          code: "35",
+          name: "Trabalho de Conclusão de Curso",
+          module: 5,
+          prereq: ["24", "25", "26", "27", "28", "29", "30"],
+        },
+        {
+          code: "36",
+          name: "Legislação Aplicada à Tecnologia da Informação",
+          module: 5,
+          prereq: [],
+        },
+        { code: "37", name: "Educação Étnico-Racial", module: 5, prereq: [] },
+        { code: "Opt", name: "Optativas", module: 5, prereq: [] },
+
+        {
+          code: "38",
+          name: "Ética e Responsabilidade Socioambiental",
+          module: 6,
+          prereq: [],
+        },
+        { code: "39", name: "Libras", module: 6, prereq: [] },
+        {
+          code: "40",
+          name: "Algoritmos de Aprendizado de Máquina",
+          module: 6,
+          prereq: ["23"],
+        },
+        {
+          code: "41",
+          name: "Processamento de Línguas Naturais",
+          module: 6,
+          prereq: ["23"],
+        },
+        {
+          code: "42",
+          name: "Processamento de Imagens",
+          module: 6,
+          prereq: ["23"],
+        },
+        {
+          code: "43",
+          name: "Introdução à Ciência de Dados",
+          module: 6,
+          prereq: ["23"],
+        },
+      ];
+
+      // monta colunas
+      const diagram = document.getElementById("diagram");
+      for (let m = 1; m <= 6; m++) {
+        const col = document.createElement("div");
+        col.className = "module";
+        courses
+          .filter((c) => c.module === m)
+          .forEach((c) => {
+            const node = document.createElement("div");
+            node.className = "node";
+            node.id = "n" + c.code;
+            node.dataset.code = c.code;
+            node.dataset.prereq = c.prereq.join(",");
+            node.innerText = `${c.code} — ${c.name}`;
+            node.style.backgroundColor = moduleColors[m];
+            col.appendChild(node);
+          });
+        diagram.appendChild(col);
+      }
+
+      // desenha conexões
+      function drawConnections() {
+        const svg = document.getElementById("lines");
+        const dims = diagram.getBoundingClientRect();
+        svg.innerHTML = `
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#999" />
+          </marker>
+        </defs>`;
+        courses.forEach((c) => {
+          c.prereq.forEach((p) => {
+            const from = document
+              .getElementById("n" + p)
+              .getBoundingClientRect();
+            const to = document
+              .getElementById("n" + c.code)
+              .getBoundingClientRect();
+            const line = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "line"
+            );
+            line.setAttribute("x1", from.right - dims.left);
+            line.setAttribute("y1", from.top + from.height / 2 - dims.top);
+            line.setAttribute("x2", to.left - dims.left);
+            line.setAttribute("y2", to.top + to.height / 2 - dims.top);
+            line.dataset.from = p;
+            line.dataset.to = c.code;
+            svg.appendChild(line);
+          });
+        });
+      }
+      window.addEventListener("load", drawConnections);
+      window.addEventListener("resize", drawConnections);
+
+      // helpers
+      function collectPrereqs(code, seen = new Set()) {
+        const curso = courses.find((c) => c.code === code);
+        curso.prereq.forEach((p) => {
+          if (!seen.has(p)) {
+            seen.add(p);
+            collectPrereqs(p, seen);
+          }
+        });
+        return seen;
+      }
+      function collectDependents(code, seen = new Set()) {
+        courses
+          .filter((c) => c.prereq.includes(code))
+          .forEach((c) => {
+            if (!seen.has(c.code)) {
+              seen.add(c.code);
+              collectDependents(c.code, seen);
+            }
+          });
+        return seen;
+      }
+
+      // hover logic, com caso especial para "Opt"
+      document.querySelectorAll(".node").forEach((node) => {
+        node.addEventListener("mouseover", () => {
+          const code = node.dataset.code;
+          // limpa todos os destaques
+          document
+            .querySelectorAll(".node")
+            .forEach((n) => n.classList.remove("highlight", "dep-highlight"));
+          document
+            .querySelectorAll("line")
+            .forEach((l) => l.classList.remove("highlight", "dep-highlight"));
+
+          if (code === "Opt") {
+            // destaca todas as optativas
+            courses
+              .filter((c) => c.module === 6)
+              .forEach((c) => {
+                document
+                  .getElementById("n" + c.code)
+                  .classList.add("highlight");
+              });
+          } else {
+            const prereqs = collectPrereqs(code);
+            const dependents = collectDependents(code);
+            // destaca nós
+            document.querySelectorAll(".node").forEach((n) => {
+              const cd = n.dataset.code;
+              if (prereqs.has(cd) || cd === code) n.classList.add("highlight");
+              if (dependents.has(cd)) n.classList.add("dep-highlight");
+            });
+            // destaca linhas
+            document.querySelectorAll("line").forEach((l) => {
+              const f = l.dataset.from,
+                t = l.dataset.to;
+              if (prereqs.has(f) && (t === code || prereqs.has(t))) {
+                l.classList.add("highlight");
+              }
+              if ((f === code || dependents.has(f)) && dependents.has(t)) {
+                l.classList.add("dep-highlight");
+              }
+            });
+          }
+        });
+        node.addEventListener("mouseout", () => {
+          document
+            .querySelectorAll(".highlight, .dep-highlight")
+            .forEach((el) => el.classList.remove("highlight", "dep-highlight"));
+        });
+      });
+    </script>
   </body>
 </html>
